@@ -5,7 +5,7 @@
 
 using namespace std;
 
-const int originalCountOfRequests = 100;
+const int originalCountOfRequests = 20;
 
 struct Node
 {
@@ -41,6 +41,7 @@ struct Cluster
     int timeId;
     int actualNodeCount = 0;
     int clusterIdInArray;
+    int backupNodeCount = 0;
 };
 
 struct LocalSearchData {
@@ -62,6 +63,7 @@ struct LocalSearchData {
     
     int currentFocusClusterReducedCost = 0;
     int currentOverAllSum = 0;
+
 };
 
 int countOfRequests = originalCountOfRequests;
@@ -552,6 +554,7 @@ void startNewFocusCluster() {
     for (int i = 0; i < originalCountOfRequests * 2; i++) {
         localSearchData.currentFocusCluster->nodesBackup[i] = localSearchData.currentFocusCluster->nodes[i];
     }
+    localSearchData.currentFocusCluster->backupNodeCount = localSearchData.currentFocusCluster->actualNodeCount;
     localSearchData.currentNodePositionOfFocusCluster = -1;
     //setNewInsertionNode();
 }
@@ -566,6 +569,8 @@ void removeNodeFromFocusCluster() {
             localSearchData.currentFocusCluster->nodes[j]->currentPositionInCluster = j;
             j++;
         }
+        if (i == localSearchData.currentFocusCluster->actualNodeCount -1)
+            localSearchData.currentFocusCluster->nodes[i] = NULL;
     }
     localSearchData.currentFocusCluster->actualNodeCount = j;
     Cluster* tempPointerToInsertionCluster = localSearchData.clusterForInsertion;
@@ -579,14 +584,15 @@ void removeNodeFromFocusCluster() {
 void restoreFocusCluster() { 
     for (int i = 0; i < originalCountOfRequests * 2; i++) {
         localSearchData.currentFocusCluster->nodes[i] = localSearchData.currentFocusCluster->nodesBackup[i];
+        localSearchData.currentFocusCluster->nodesBackup[i] = NULL;
         if (localSearchData.currentFocusCluster->nodes[i] == NULL)
             continue;
         localSearchData.currentFocusCluster->nodes[i]->currentPositionInCluster = i;
         localSearchData.currentFocusCluster->nodes[i]->clusterIdInClusterArray = localSearchData.currentFocusCluster->clusterIdInArray;
     }
-    localSearchData.currentFocusCluster->actualNodeCount++;
-    int z = 0;
-    z++;
+    localSearchData.currentFocusCluster->actualNodeCount = localSearchData.currentFocusCluster->backupNodeCount;
+    /*int z = 0;
+    z++;*/
     //setNewInsertionNode();
 }
 
@@ -601,6 +607,10 @@ void setNewInsertionNode(bool ignoreRestore) {
             localSearchData.noMoreOptimizationPotential = true;
         }
         else {
+            restoreFocusCluster();
+            /*for (int i = 0; i < originalCountOfRequests * 2; i++) {
+                localSearchData.currentFocusCluster->nodesBackup[i] = NULL;
+            }*/
             localSearchData.currentFocusCluster = &clusters[localSearchData.currentFocusClusterIndex];
             startNewFocusCluster();
             setNewInsertionNode(true);
@@ -636,8 +646,11 @@ void setNewInsertionNode(bool ignoreRestore) {
     localSearchData.clusterOfBestInsertion->actualNodeCount++;
  }
 
-void startNextCheckIterartion(bool restart) {// if we tested our node against all positions and it didn't get better restart is false.. If it got better, rest,art is true we call "rebuildCluster" and start the chain again.
+void startNextCheckIterartion(bool restart) {// if we tested our node against all positions and it didn't get better restart is false.. If it got better, restart is true we call "rebuildCluster" and start the chain again.
     if (restart) {
+        for (int i = 0; i < originalCountOfRequests * 2; i++) {
+            localSearchData.currentFocusCluster->nodesBackup[i] = NULL;
+        }
         rebuildInsertionCluster();
         calculateCurrentCostsPerCluster();
         localSearchData.currentFocusClusterIndex = 0;
@@ -716,8 +729,8 @@ void calculateAndPrintBestRouteForCluster(int cluster)
 
 int main() {
     setupMatchingTable();
-    parseCosts("plop.csv");
-    parseRequests("requests.csv");
+    parseCosts("plop20.csv");
+    parseRequests("requests20.csv");
     // vector<Node> nodes[N];F
     int clusterCount = 1;
     for (int i = 0; i < originalCountOfRequests; i++)
@@ -737,11 +750,3 @@ int main() {
 
     doOptimizationSteps();
 }
-
-
-
-
-
-
-
-
