@@ -294,7 +294,7 @@ void printVisited() {
 
 //MODIFY OR IMPLEMENT:
 void resetData() {
-    for (int i = 0; i <= countOfRequests * 2 + 1 ; i++)  {
+    for (int i = 0; i <= originalCountOfRequests * 2 + 1 ; i++)  {
         final_path[i] = -1;
         //visited[i] = false;
     }
@@ -389,12 +389,22 @@ Cluster setupClusterData() {
     Cluster buildCluster;
     buildCluster.clusterIdInArray = clusterCounter;
     for (int i = 1; i <= countOfRequests * 2; i++) {
-        int originalId = getOriginalId(final_path[i]);
-        buildCluster.nodes[i - 1] = &allNodes[originalId - 1];
-        buildCluster.actualNodeCount++;
-        buildCluster.nodes[i - 1]->clusterIdInClusterArray = buildCluster.clusterIdInArray;
-        buildCluster.nodes[i - 1]->currentPositionInCluster = i - 1;
+       
+            int originalId = getOriginalId(final_path[i]);
+            buildCluster.nodes[i - 1] = &allNodes[originalId - 1];
+            buildCluster.actualNodeCount++;
+            buildCluster.nodes[i - 1]->clusterIdInClusterArray = buildCluster.clusterIdInArray;
+            buildCluster.nodes[i - 1]->currentPositionInCluster = i - 1;
+            buildCluster.nodesBackup[i - 1] = NULL;
+        }
+     
+    
+    for (int i = countOfRequests * 2; i < originalCountOfRequests * 2; i++) {
+        buildCluster.nodes[i] = NULL;
+        buildCluster.nodesBackup[i] = NULL;
     }
+
+
     /*for (int i = 0; i < countOfRequests * 2 + 1; i++)
         buildCluster.subCosts[i] = subCosts[i];*/
     return buildCluster;
@@ -443,7 +453,7 @@ int calculateCostsForCluster(Cluster* cluster) {
         if (i + offset == -1)
             nodeToComeFrom = NULL;
         else 
-            nodeToComeFrom = cluster->nodes[i + offset];
+            nodeToComeFrom = cluster->nodes[i + offset]; 
 
         if (i + offset + 1 == cluster->actualNodeCount)
             nodeToGoTo = NULL;
@@ -488,10 +498,11 @@ void insertionIteration() {
     int currentBestCostsPerCluster[clusterCounter];
     for (int i = 0; i < clusterCounter; i++) {
         currentBestCostsPerCluster[i] = -1;//originalClusterCosts[i];
-    }*/
+    }*/      
+
     int currentIterationBestPrice = -1;
     for (int i = 0; i < clusterCounter; i++) {
-      
+
         //if (!localSearchData.currentInsertionNode->isPickupNode && (clusters[localSearchData.currentInsertionNode->correspondingNode->clusterIdInClusterArray].clusterDay > clusters[localSearchData.currentInsertionNode->clusterIdInClusterArray].clusterDay))
         if (!localSearchData.currentInsertionNode->isPickupNode && (clusters[localSearchData.currentInsertionNode->correspondingNode->clusterIdInClusterArray].clusterDay > clusters[i].clusterDay))
             continue;
@@ -582,15 +593,21 @@ void removeNodeFromFocusCluster() {
 }
 
 void restoreFocusCluster() { 
+    int cursorPosition = localSearchData.currentNodePositionOfFocusCluster;
     for (int i = 0; i < originalCountOfRequests * 2; i++) {
         localSearchData.currentFocusCluster->nodes[i] = localSearchData.currentFocusCluster->nodesBackup[i];
         localSearchData.currentFocusCluster->nodesBackup[i] = NULL;
-        if (localSearchData.currentFocusCluster->nodes[i] == NULL)
+        if (!localSearchData.currentFocusCluster->nodes[i])
             continue;
         localSearchData.currentFocusCluster->nodes[i]->currentPositionInCluster = i;
         localSearchData.currentFocusCluster->nodes[i]->clusterIdInClusterArray = localSearchData.currentFocusCluster->clusterIdInArray;
     }
     localSearchData.currentFocusCluster->actualNodeCount = localSearchData.currentFocusCluster->backupNodeCount;
+    startNewFocusCluster();
+    localSearchData.currentNodePositionOfFocusCluster = cursorPosition;
+    /*for (int i = 0; i < originalCountOfRequests * 2; i++) {
+        localSearchData.currentFocusCluster->nodesBackup[i] = NULL;
+    }*/
     /*int z = 0;
     z++;*/
     //setNewInsertionNode();
@@ -618,6 +635,9 @@ void setNewInsertionNode(bool ignoreRestore) {
         return;
     }
     localSearchData.currentInsertionNode = localSearchData.currentFocusCluster->nodes[localSearchData.currentNodePositionOfFocusCluster];
+      if (!localSearchData.currentInsertionNode) {
+       int rr = 1;
+      }
     removeNodeFromFocusCluster();
     insertionIteration();
 }
